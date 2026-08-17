@@ -15,13 +15,13 @@ export function HeroPreviewPanel() {
             ShieldBhasha — Text Checker
           </span>
         </div>
-        <span className="rounded-md border border-border bg-panel px-2 py-1 font-mono text-[11px] text-ink-disabled">
+        <span className="rounded-md border border-border bg-panel px-2 py-1 font-mono text-[11px] text-ink-secondary">
           Example analysis
         </span>
       </div>
 
       <div className="p-5 sm:p-6">
-        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-secondary">
           <Languages className="h-3.5 w-3.5" strokeWidth={2} />
           Message received · Hindi
         </div>

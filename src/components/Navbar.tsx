@@ -134,7 +134,7 @@ function FloatingPillNav({ scrolled }: { scrolled: boolean }) {
             onTouchMove={() => clearTouch(item.to)}
             onClick={(e) => handleClick(item.to, e)}
             className={cn(
-              'group/item relative z-10 flex items-center gap-2 whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-medium transition-colors duration-200 md:px-3.5',
+              'group/item relative z-10 flex min-w-[44px] shrink-0 items-center justify-center gap-2 self-stretch whitespace-nowrap rounded-full px-2.5 text-sm font-medium transition-colors duration-200 md:min-w-0 md:justify-start md:px-3.5',
               isTarget ? 'text-white' : 'text-ink-secondary hover:text-ink-primary',
             )}
           >
@@ -189,7 +189,7 @@ export function Navbar() {
           to="/report"
           aria-label="Report a scam now"
           className={cn(
-            'z-20 flex shrink-0 items-center gap-2 rounded-full bg-danger font-semibold text-white',
+            'z-20 flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full bg-danger font-semibold text-white',
             'shadow-[0_0_0_1px_rgba(239,68,68,0.5),0_4px_16px_rgba(239,68,68,0.25)]',
             'transition-all duration-200 ease-emphasized hover:brightness-90 active:scale-[0.98]',
             scrolled ? 'px-3.5 py-2.5 text-sm' : 'px-4 py-3 text-sm',

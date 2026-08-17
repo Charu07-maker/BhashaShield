@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ShieldHalf, Info, Phone, ExternalLink } from 'lucide-react'
 
 export function Footer() {
@@ -11,9 +12,17 @@ export function Footer() {
               ShieldBhasha
             </span>
           </div>
-          <p className="text-sm text-ink-secondary">
-            Scam detection and explanation in your language — Hindi, Tamil, Bengali, English.
-          </p>
+          <div className="flex items-center gap-6">
+            <Link
+              to="/how-it-works"
+              className="text-sm font-medium text-ink-secondary transition-colors hover:text-ink-primary"
+            >
+              How it works
+            </Link>
+            <p className="text-sm text-ink-secondary">
+              Scam detection and explanation in your language — Hindi, Tamil, Bengali, English.
+            </p>
+          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-start sm:justify-between">
@@ -45,7 +54,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6 text-xs text-ink-disabled sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6 text-xs text-ink-secondary sm:flex-row sm:items-center sm:justify-between">
           <p>Built by Team ShieldBhasha for Omnikon 2026 — Problem Statement Omni_CyberTech_1</p>
           <p className="font-mono">All analysis shown is simulated for demonstration purposes.</p>
         </div>

@@ -1,30 +1,12 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ScanSearch, Languages, TriangleAlert } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardDescription, CardTitle } from '../components/ui/Card'
 import { StatTile } from '../components/ui/StatTile'
-import { ScanLoader } from '../components/ui/ScanLoader'
 import { HeroPreviewPanel } from '../components/HeroPreviewPanel'
+import { WhatsAppBotSection } from '../components/WhatsAppBotSection'
 import { MODULES } from '../data/modules'
 import { STATS } from '../data/stats'
-
-const STEPS = [
-  {
-    icon: ScanSearch,
-    title: 'Paste or upload',
-    description: 'A message, link, call description, or recording — in Hindi, Tamil, Bengali, or English.',
-  },
-  {
-    icon: TriangleAlert,
-    title: 'ShieldBhasha analyzes',
-    description: 'Every risky phrase and signal is identified, not just flagged as a bare label.',
-  },
-  {
-    icon: Languages,
-    title: 'Get an explained verdict',
-    description: 'Safe, Suspicious, or Dangerous — explained in the same language it arrived in.',
-  },
-]
 
 export function Home() {
   return (
@@ -54,11 +36,11 @@ export function Home() {
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <a href="#how-it-works">
+                <Link to="/how-it-works">
                   <Button size="lg" variant="outline">
                     See how it works
                   </Button>
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -78,38 +60,7 @@ export function Home() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="border-y border-border bg-panel/40">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-primary sm:text-3xl">
-                How it works
-              </h2>
-              <div className="mt-8 space-y-8">
-                {STEPS.map((step, i) => (
-                  <div key={step.title} className="flex gap-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-raised font-mono text-sm text-accent">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <h3 className="font-display text-base font-semibold text-ink-primary">
-                        {step.title}
-                      </h3>
-                      <p className="mt-1 text-[15px] leading-relaxed text-ink-secondary">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Card className="p-4">
-              <ScanLoader />
-            </Card>
-          </div>
-        </div>
-      </section>
+      <WhatsAppBotSection />
 
       {/* Closing: four modules */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">

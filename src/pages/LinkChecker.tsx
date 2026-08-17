@@ -8,9 +8,11 @@ import { ExampleChips } from '../components/dashboard/ExampleChips'
 import { AnalyzingChecklist } from '../components/dashboard/AnalyzingChecklist'
 import { VerdictBanner } from '../components/dashboard/VerdictBanner'
 import { LinkDetailsPanel } from '../components/dashboard/LinkDetailsPanel'
+import { EmergencyActionRow } from '../components/dashboard/EmergencyActionRow'
 import { useDashboardContext } from '../components/dashboard/DashboardContext'
 import { LINK_EXAMPLES, analyzeLinkCheckerUrl } from '../data/linkCheckerExamples'
 import type { LinkAnalysisResult } from '../lib/linkAnalysis'
+import type { ReportContext } from '../lib/report'
 
 type Phase = 'idle' | 'analyzing' | 'result'
 type Feedback = 'up' | 'down' | null
@@ -134,7 +136,7 @@ export function LinkChecker() {
               <VerdictBanner status={result.status} />
 
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-secondary">
                   Link details
                 </p>
                 <LinkDetailsPanel result={result} />
@@ -142,9 +144,23 @@ export function LinkChecker() {
 
               <p className="text-sm leading-relaxed text-ink-secondary">{result.summary}</p>
 
+              {result.status === 'dangerous' && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-secondary">
+                    Take action now
+                  </p>
+                  <EmergencyActionRow />
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
                 <div className="flex flex-wrap gap-3">
-                  <Link to="/report">
+                  <Link
+                    to="/report"
+                    state={
+                      { source: 'link', status: result.status, preview: url } satisfies ReportContext
+                    }
+                  >
                     <Button variant="outline" size="md">
                       <AlertOctagon className="h-4 w-4" />
                       Report this
@@ -158,15 +174,15 @@ export function LinkChecker() {
 
                 <div className="flex items-center gap-2">
                   {feedback ? (
-                    <span className="text-xs text-ink-disabled">Thanks for the feedback</span>
+                    <span className="text-xs text-ink-secondary">Thanks for the feedback</span>
                   ) : (
                     <>
-                      <span className="text-xs text-ink-disabled">Was this helpful?</span>
+                      <span className="text-xs text-ink-secondary">Was this helpful?</span>
                       <button
                         type="button"
                         onClick={() => setFeedback('up')}
                         aria-label="This was helpful"
-                        className="rounded-md p-1.5 text-ink-secondary transition-colors hover:bg-panel hover:text-safe"
+                        className="rounded-md p-2.5 text-ink-secondary transition-colors hover:bg-panel hover:text-safe"
                       >
                         <ThumbsUp className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -174,7 +190,7 @@ export function LinkChecker() {
                         type="button"
                         onClick={() => setFeedback('down')}
                         aria-label="This was not helpful"
-                        className="rounded-md p-1.5 text-ink-secondary transition-colors hover:bg-panel hover:text-danger"
+                        className="rounded-md p-2.5 text-ink-secondary transition-colors hover:bg-panel hover:text-danger"
                       >
                         <ThumbsDown className="h-4 w-4" strokeWidth={2} />
                       </button>

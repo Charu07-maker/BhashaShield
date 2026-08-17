@@ -21,9 +21,12 @@ import { RiskMeter } from '../components/dashboard/RiskMeter'
 import { HighlightedMessage } from '../components/dashboard/HighlightedMessage'
 import { FlagList } from '../components/dashboard/FlagList'
 import { LinkVerdictCard } from '../components/dashboard/LinkVerdictCard'
+import { InlineNotice } from '../components/dashboard/InlineNotice'
+import { EmergencyActionRow } from '../components/dashboard/EmergencyActionRow'
 import { useDashboardContext } from '../components/dashboard/DashboardContext'
 import { TEXT_EXAMPLES, OCR_MOCK_TEXT, analyzeTextCheckerMessage } from '../data/textCheckerExamples'
 import type { AnalysisResult } from '../lib/analysis'
+import type { ReportContext } from '../lib/report'
 import { cn } from '../lib/utils'
 
 type Phase = 'idle' | 'analyzing' | 'result'
@@ -41,6 +44,7 @@ export function TextChecker() {
   const [isDragging, setIsDragging] = useState(false)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [feedback, setFeedback] = useState<Feedback>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -51,6 +55,7 @@ export function TextChecker() {
     setOcrExtracting(false)
     setResult(null)
     setFeedback(null)
+    setFileError(null)
   }, [resetSignal])
 
   const handleCheck = () => {
@@ -69,7 +74,12 @@ export function TextChecker() {
   }
 
   const handleFileSelected = (file: File) => {
-    if (!file.type.startsWith('image/') || phase === 'analyzing' || ocrExtracting) return
+    if (phase === 'analyzing' || ocrExtracting) return
+    if (!file.type.startsWith('image/')) {
+      setFileError('That file type isn\'t supported. Please upload a PNG or JPG screenshot.')
+      return
+    }
+    setFileError(null)
     setOcrExtracting(true)
     window.setTimeout(() => {
       setMessageText(OCR_MOCK_TEXT)
@@ -120,7 +130,10 @@ export function TextChecker() {
                   id="message-input"
                   rows={7}
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={(e) => {
+                    setMessageText(e.target.value)
+                    setFileError(null)
+                  }}
                   placeholder='e.g. "Dear customer, your account will be blocked..."'
                   disabled={isBusy}
                 />
@@ -165,12 +178,17 @@ export function TextChecker() {
                   </>
                 ) : (
                   <>
-                    <Upload className="h-5 w-5 text-ink-disabled" strokeWidth={1.75} />
+                    <Upload className="h-5 w-5 text-ink-secondary" strokeWidth={1.75} />
                     <span className="text-sm font-medium text-ink-primary">Upload a screenshot instead</span>
-                    <span className="text-xs text-ink-disabled">PNG or JPG, or drag and drop</span>
+                    <span className="text-xs text-ink-secondary">PNG or JPG, or drag and drop</span>
                   </>
                 )}
               </button>
+              {fileError && (
+                <div className="mt-3">
+                  <InlineNotice>{fileError}</InlineNotice>
+                </div>
+              )}
             </div>
 
             <ExampleChips
@@ -203,21 +221,21 @@ export function TextChecker() {
               <RiskMeter score={result.riskScore} status={result.status} />
 
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-secondary">
                   Original message
                 </p>
                 <HighlightedMessage segments={result.segments} status={result.status} />
               </div>
 
               <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-secondary">
                   What triggered this
                 </p>
                 <FlagList flags={result.flags} status={result.status} />
               </div>
 
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-secondary">
                   <Languages className="h-3.5 w-3.5" strokeWidth={2} />
                   Explained in {result.language}
                 </p>
@@ -226,16 +244,35 @@ export function TextChecker() {
 
               {result.link && (
                 <div>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-disabled">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-secondary">
                     Link found in this message
                   </p>
                   <LinkVerdictCard link={result.link} />
                 </div>
               )}
 
+              {result.status === 'dangerous' && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-secondary">
+                    Take action now
+                  </p>
+                  <EmergencyActionRow />
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
                 <div className="flex flex-wrap gap-3">
-                  <Link to="/report">
+                  <Link
+                    to="/report"
+                    state={
+                      {
+                        source: 'text',
+                        status: result.status,
+                        preview: messageText,
+                        language: result.language,
+                      } satisfies ReportContext
+                    }
+                  >
                     <Button variant="outline" size="md">
                       <AlertOctagon className="h-4 w-4" />
                       Report this
@@ -249,15 +286,15 @@ export function TextChecker() {
 
                 <div className="flex items-center gap-2">
                   {feedback ? (
-                    <span className="text-xs text-ink-disabled">Thanks for the feedback</span>
+                    <span className="text-xs text-ink-secondary">Thanks for the feedback</span>
                   ) : (
                     <>
-                      <span className="text-xs text-ink-disabled">Was this helpful?</span>
+                      <span className="text-xs text-ink-secondary">Was this helpful?</span>
                       <button
                         type="button"
                         onClick={() => setFeedback('up')}
                         aria-label="This was helpful"
-                        className="rounded-md p-1.5 text-ink-secondary transition-colors hover:bg-raised hover:text-safe"
+                        className="rounded-md p-2.5 text-ink-secondary transition-colors hover:bg-raised hover:text-safe"
                       >
                         <ThumbsUp className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -265,7 +302,7 @@ export function TextChecker() {
                         type="button"
                         onClick={() => setFeedback('down')}
                         aria-label="This was not helpful"
-                        className="rounded-md p-1.5 text-ink-secondary transition-colors hover:bg-raised hover:text-danger"
+                        className="rounded-md p-2.5 text-ink-secondary transition-colors hover:bg-raised hover:text-danger"
                       >
                         <ThumbsDown className="h-4 w-4" strokeWidth={2} />
                       </button>

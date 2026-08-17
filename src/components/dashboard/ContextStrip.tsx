@@ -17,13 +17,13 @@ export function ContextStrip() {
               </span>
             </p>
           ) : (
-            <p className="text-sm text-ink-disabled">No language detected yet</p>
+            <p className="text-sm text-ink-secondary">No language detected yet</p>
           )}
         </div>
         <button
           type="button"
           onClick={resetCheck}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors duration-150 hover:border-accent/50 hover:text-ink-primary"
+          className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-ink-secondary transition-colors duration-150 hover:border-accent/50 hover:text-ink-primary"
         >
           <RotateCcw className="h-3.5 w-3.5" strokeWidth={2} />
           New check

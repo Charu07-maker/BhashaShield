@@ -117,20 +117,7 @@ export const TEXT_EXAMPLES: ExampleMessage[] = [
       segments: [
         { text: 'Hey! Are we still on for dinner tonight at 8? Let me know if you want me to book the table.' },
       ],
-      flags: [
-        {
-          title: 'No links or payment requests',
-          description: 'The message contains no URLs, account numbers, or payment asks.',
-        },
-        {
-          title: 'No urgency or threats',
-          description: "There's no pressure to act quickly or any threatening language.",
-        },
-        {
-          title: 'Consistent with normal conversation',
-          description: 'Reads like an ordinary personal message between people who know each other.',
-        },
-      ],
+      flags: [],
       explanation:
         'This message shows none of the patterns associated with scams — no links, no urgency, and no requests for money or personal information. It reads like a normal personal conversation.',
     },

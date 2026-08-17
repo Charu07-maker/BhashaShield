@@ -25,7 +25,7 @@ export function AnalyzingChecklist({ steps, activeIndex }: AnalyzingChecklistPro
             <span
               className={cn(
                 'font-mono text-sm',
-                done || inProgress ? 'text-ink-primary' : 'text-ink-disabled',
+                done || inProgress ? 'text-ink-primary' : 'text-ink-secondary',
               )}
             >
               {step}

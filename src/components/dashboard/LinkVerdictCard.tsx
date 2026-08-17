@@ -20,7 +20,7 @@ export function LinkVerdictCard({ link }: { link: LinkVerdict }) {
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            className="inline-flex items-center gap-1 text-xs font-medium text-ink-secondary transition-colors hover:text-ink-primary"
+            className="-m-2 inline-flex items-center gap-1 p-2 text-xs font-medium text-ink-secondary transition-colors hover:text-ink-primary"
           >
             {expanded ? 'Hide details' : 'View link details'}
             <ChevronDown

@@ -9,6 +9,7 @@ import { CallShield } from './pages/CallShield'
 import { RecordedCall } from './pages/RecordedCall'
 import { Trends } from './pages/Trends'
 import { Report } from './pages/Report'
+import { HowItWorks } from './pages/HowItWorks'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             </Route>
             <Route path="/trends" element={<Trends />} />
             <Route path="/report" element={<Report />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
           </Routes>
         </main>
         <Footer />

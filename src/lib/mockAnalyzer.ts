@@ -63,6 +63,18 @@ export const SCAM_KEYWORD_RULES: KeywordRule[] = [
     weight: 25,
   },
   {
+    pattern: /don'?t (disconnect|hang up)|do not disconnect|stay on the (call|line)/i,
+    title: 'Instruction to stay on the call',
+    description: 'Isolates you from friends or family who could point out it\'s a scam.',
+    weight: 30,
+  },
+  {
+    pattern: /video call|stay on camera|keep your camera on/i,
+    title: 'Demands to stay on video call',
+    description: 'Creates a sense of surveillance and control — a hallmark "digital arrest" tactic.',
+    weight: 25,
+  },
+  {
     pattern: URL_PATTERN,
     title: 'Suspicious link',
     description: 'Contains a link to an unfamiliar or unofficial-looking domain.',
@@ -143,13 +155,6 @@ export function heuristicAnalyze(text: string, rules: KeywordRule[] = SCAM_KEYWO
   const flags: RedFlag[] = matchedRules
     .filter((r) => r.title !== 'Suspicious link')
     .map((r) => ({ title: r.title, description: r.description }))
-
-  if (flags.length === 0) {
-    flags.push(
-      { title: 'No urgency or threats', description: 'The message does not pressure you to act quickly.' },
-      { title: 'No requests for money or codes', description: 'It does not ask for OTPs, passwords, or payments.' },
-    )
-  }
 
   const explanation = buildExplanation(status, matchedRules, language)
 
