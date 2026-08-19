@@ -7,12 +7,12 @@ per language (text, text_hi, text_bn, ...) and a shared label — this script
 "melts" that wide format into the long format the classifier and eval
 harness both expect.
 
-Uses every language column the dataset actually contains (21 languages, not
-just the 4 ShieldBhasha's UI currently surfaces) — the trained classifier is
-a general-purpose multilingual spam/ham judgment, independent of which
-languages the frontend has explanation templates for. A message in a
-language the UI can't yet localize still gets correctly classified; it just
-falls back to an English-language explanation (see app/services/explain.py).
+Strictly scoped to 5 languages: English, Hindi, Bengali, Punjabi, Marathi.
+The dataset has 21 language columns total; the other 16 are deliberately
+excluded here — not every column that exists gets used. Bengali is also
+supplemented with real, native (not machine-translated) data in
+data/bengali_real_train.csv — see scripts/prepare_bengali_data.py — and
+combined at training time in train_classifier.py.
 
 Run: python scripts/download_dataset.py
 """
@@ -25,34 +25,14 @@ from datasets import load_dataset
 
 OUT_PATH = Path(__file__).parent.parent / "data" / "labeled_messages.csv"
 
-# Every text_* column in the dataset, mapped to its full language name.
-# Confirmed against the dataset's actual columns — see README.md for the
-# provenance note. "text" (no suffix) is the original English column.
+# Exactly the 5 languages this product supports. Do not add more columns
+# here without an explicit decision to widen language scope again.
 LANGUAGE_COLUMNS = {
     "text": "English",
     "text_hi": "Hindi",
-    "text_de": "German",
-    "text_fr": "French",
-    "text_es": "Spanish",
-    "text_zh": "Chinese",
-    "text_ar": "Arabic",
     "text_bn": "Bengali",
-    "text_ru": "Russian",
-    "text_pt": "Portuguese",
-    "text_ja": "Japanese",
-    "text_id": "Indonesian",
-    "text_ur": "Urdu",
     "text_pa": "Punjabi",
-    "text_jv": "Javanese",
-    "text_tr": "Turkish",
-    "text_ko": "Korean",
     "text_mr": "Marathi",
-    "text_uk": "Ukrainian",
-    "text_sv": "Swedish",
-    "text_no": "Norwegian",
-    # No Tamil column in this dataset — Tamil coverage for now comes
-    # entirely from the rule engine's patterns and any hand-curated
-    # examples added to data/manual_examples.csv.
 }
 
 

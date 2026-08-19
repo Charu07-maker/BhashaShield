@@ -3,12 +3,21 @@ catches phrasing the rule engine's fixed patterns don't cover.
 
 Why character n-grams, not word n-grams: a single TfidfVectorizer(analyzer=
 "char_wb") works uniformly across Devanagari, Bengali, and Latin script
-without a per-language tokenizer or stemmer — important since this dataset's
-Hindi/Bengali columns are machine-translated and won't always segment
-cleanly on whitespace the way hand-written SMS does.
+without a per-language tokenizer or stemmer.
+
+Bengali gets special handling: the HF dataset's Bengali column is machine-
+translated from the English UCI spam set, and measured directly against
+real native Bengali spam it produced a 58.5% false-safe rate — the
+translated phrasing (Western "you've won a lottery" style, word-for-word
+translated) doesn't match how real Bengali spam is actually written (local
+brands, local payment apps, colloquial phrasing). data/bengali_real_train.csv
+(see scripts/prepare_bengali_data.py) is real, native Bengali spam/ham, and
+is oversampled BENGALI_REAL_OVERSAMPLE times so it isn't drowned out by the
+~13x larger volume of machine-translated Bengali in the base dataset.
 
 Run: python scripts/train_classifier.py
-(after scripts/download_dataset.py has produced data/labeled_messages.csv)
+(after scripts/download_dataset.py has produced data/labeled_messages.csv
+and scripts/prepare_bengali_data.py has produced data/bengali_real_train.csv)
 """
 
 from pathlib import Path
@@ -25,11 +34,13 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 MODELS_DIR = Path(__file__).parent.parent / "models"
 LABELED_PATH = DATA_DIR / "labeled_messages.csv"
 MANUAL_PATH = DATA_DIR / "manual_examples.csv"
+BENGALI_REAL_TRAIN_PATH = DATA_DIR / "bengali_real_train.csv"
 MODEL_PATH = MODELS_DIR / "classifier.joblib"
 HOLDOUT_PATH = DATA_DIR / "eval_holdout.csv"
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
+BENGALI_REAL_OVERSAMPLE = 10
 
 
 def load_training_data() -> pd.DataFrame:
@@ -41,6 +52,17 @@ def load_training_data() -> pd.DataFrame:
         manual = pd.read_csv(MANUAL_PATH)
         print(f"Folding in {len(manual)} hand-curated examples from {MANUAL_PATH.name}")
         df = pd.concat([df, manual[["text", "language", "label"]]], ignore_index=True)
+
+    if BENGALI_REAL_TRAIN_PATH.exists():
+        bengali_real = pd.read_csv(BENGALI_REAL_TRAIN_PATH)
+        oversampled = pd.concat([bengali_real] * BENGALI_REAL_OVERSAMPLE, ignore_index=True)
+        print(f"Folding in {len(bengali_real)} real Bengali examples, "
+              f"oversampled {BENGALI_REAL_OVERSAMPLE}x -> {len(oversampled)} rows "
+              f"(vs {len(df[df['language'] == 'Bengali'])} machine-translated Bengali rows)")
+        df = pd.concat([df, oversampled[["text", "language", "label"]]], ignore_index=True)
+    else:
+        print(f"NOTE: {BENGALI_REAL_TRAIN_PATH.name} not found — run "
+              f"scripts/prepare_bengali_data.py first for accurate Bengali detection.")
 
     df = df.dropna(subset=["text", "label"])
     df = df[df["text"].str.strip().str.len() > 0]

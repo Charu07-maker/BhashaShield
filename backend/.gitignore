@@ -3,11 +3,17 @@
 __pycache__/
 *.pyc
 
-# Dataset — fetched from Hugging Face at build time via
-# scripts/download_dataset.py, never committed to the repo.
+# Hugging Face dataset — fetched at build time via scripts/download_dataset.py,
+# never committed to the repo.
 data/*.csv
 data/*.parquet
 !data/manual_examples.csv
+# Real, native Bengali spam/ham data (user-provided, no automated re-fetch
+# path — committed so the Bengali accuracy fix is reproducible from a fresh
+# clone) and its train/holdout split. See scripts/prepare_bengali_data.py.
+!data/raw/bengali_spam_source.csv
+!data/bengali_real_train.csv
+!data/bengali_real_holdout.csv
 
 # Trained model — derived directly from the dataset above, so it's kept out
 # for the same reason. Reproduce it locally: download_dataset.py then

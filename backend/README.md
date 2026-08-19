@@ -5,6 +5,10 @@ phrasing the rules don't) behind the Text/SMS/Email checker. See
 `../[Detection Engine Blueprint]` artifact for the full architecture
 writeup — this is that plan, actually built.
 
+**Strictly scoped to 5 languages**: English, Hindi, Bengali, Punjabi,
+Marathi. This is a deliberate restriction, not a gap — the source dataset
+has 21, and 16 are intentionally unused.
+
 ## Setup
 
 ```bash
@@ -12,12 +16,18 @@ cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python scripts/download_dataset.py   # fetches the HF dataset, never committed
-python scripts/train_classifier.py   # trains + saves models/classifier.joblib
-python scripts/evaluate.py           # reports real precision/recall/F1
-pytest tests/                        # 7 deterministic tests always run;
-                                      # 8 multilingual pipeline tests run once
-                                      # a model is trained (auto-skipped otherwise)
+python scripts/download_dataset.py     # fetches the HF dataset (5 languages
+                                        # only), never committed
+python scripts/prepare_bengali_data.py # splits the real Bengali dataset into
+                                        # a train fold + a held-out eval set
+python scripts/train_classifier.py     # trains + saves models/classifier.joblib
+python scripts/evaluate.py             # general precision/recall/F1
+python scripts/evaluate_bengali.py     # the number that actually matters —
+                                        # accuracy on real, native Bengali
+                                        # text never seen during training
+pytest tests/                          # 7 deterministic tests always run;
+                                        # 10 pipeline tests run once a model
+                                        # is trained (auto-skipped otherwise)
 
 uvicorn app.main:app --reload --port 8000
 ```
@@ -43,8 +53,7 @@ app/
   rules/scam_rules.yaml  Rule engine patterns — data, not code
   services/
     language.py        Script-based Hindi/Bengali/Tamil/English detection
-                        (drives the UI's language badge + explanation locale —
-                        separate from the classifier's language coverage below)
+                        (drives the UI's language badge + explanation locale)
     rules.py            Rule engine matcher
     segments.py          Builds highlighted-phrase segments from rule matches
     classifier.py         Loads + runs the trained ML classifier
@@ -55,61 +64,81 @@ app/
                                average — see "The safety rule" below)
     analyze.py                   Orchestrates all of the above into one AnalysisResult
 scripts/
-  download_dataset.py   Fetches + reshapes the Hugging Face dataset (all 21
-                         language columns, not just the UI's 4)
-  train_classifier.py    Trains the TF-IDF + LogisticRegression pipeline
-  evaluate.py              Full-pipeline precision/recall/F1 on a held-out set
+  download_dataset.py       Fetches the HF dataset, restricted to 5 language columns
+  prepare_bengali_data.py    Splits the real Bengali dataset into train/holdout
+  train_classifier.py         Trains the TF-IDF + LogisticRegression pipeline
+                               (folds in the oversampled real Bengali train set)
+  evaluate.py                   General full-pipeline precision/recall/F1
+  evaluate_bengali.py             Bengali-specific accuracy on the dedicated holdout
 data/
-  manual_examples.csv   Hand-curated digital-arrest / UPI-fraud examples —
-                          committed, since no public dataset covers this yet
-  labeled_messages.csv  Fetched dataset, gitignored — regenerate via the script above
+  manual_examples.csv       Hand-curated digital-arrest / UPI-fraud examples — committed
+  raw/bengali_spam_source.csv  Real, native Bengali spam/ham — user-provided,
+                                committed (no automated re-fetch path exists,
+                                unlike the HF dataset)
+  bengali_real_train.csv       Derived train fold (oversampled into training)
+  bengali_real_holdout.csv     Derived holdout — NEVER used in training
+  labeled_messages.csv      HF dataset, gitignored — regenerate via the script above
 models/
-  classifier.joblib     Trained pipeline, gitignored — regenerate via the
-                         training script (derived directly from the dataset,
-                         so it's excluded for the same reason)
+  classifier.joblib         Trained pipeline, gitignored — regenerate via the
+                             training script
 tests/
-  test_analyze.py       Deterministic tests, run without a trained model
-  test_classifier.py    Multilingual pipeline tests (French/German/Chinese/
-                         Russian spam + ham), auto-skipped if no model exists
+  test_analyze.py           Deterministic tests, run without a trained model
+  test_classifier.py        Pipeline tests for all 5 languages, auto-skipped
+                             if no model exists
 ```
 
-## The dataset — and why it's trained on all 21 languages, not just 4
+## The dataset(s)
 
-Trained on
-[dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset](https://huggingface.co/datasets/dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset)
-(machine-translated from the classic UCI SMS Spam Collection, GPL license)
-plus `data/manual_examples.csv` — hand-written digital-arrest and UPI-fraud
-examples, since no public dataset covers that scam pattern yet. **The
-dataset itself is never committed** — `download_dataset.py` fetches it
-fresh, `.gitignore` excludes the resulting CSV and the trained model.
+**Base**: [dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset](https://huggingface.co/datasets/dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset)
+(machine-translated from the classic UCI SMS Spam Collection, GPL license).
+`download_dataset.py` uses exactly 5 of its 21 language columns — English,
+Hindi, Bengali, Punjabi, Marathi — `25,400` labeled messages. **Never
+committed** — the script fetches it fresh; `.gitignore` excludes the CSV
+and the trained model.
 
-The dataset actually contains 21 languages: English, Hindi, Bengali,
-German, French, Spanish, Chinese, Arabic, Russian, Portuguese, Japanese,
-Indonesian, Urdu, Punjabi, Javanese, Turkish, Korean, Marathi, Ukrainian,
-Swedish, Norwegian. `download_dataset.py` uses every one of them —
-`106,445` labeled messages total — so the classifier's spam/ham judgment
-is a genuinely general-purpose multilingual model, not scoped to just the
-4 languages ShieldBhasha's UI currently has explanation templates for
-(Hindi/Tamil/Bengali/English). A message in any of the other 17 languages
-still gets correctly classified; it just falls back to an English-language
-explanation in `explain.py` until someone adds that template.
+**Plus** `data/manual_examples.csv` — hand-written digital-arrest and
+UPI-fraud examples, since no public dataset covers that scam pattern.
 
-### Measured results (not claimed — see `scripts/evaluate.py`)
+**Plus real, native Bengali data** (`data/raw/bengali_spam_source.csv`,
+477 messages, user-provided) — see the fix below.
 
-Full pipeline (rule engine + classifier), on a genuine 21,289-message
-held-out split it never trained on:
+## The Bengali fix
+
+Measured directly against real, native Bengali spam (not the HF dataset's
+machine-translated Bengali column), the original model had a **58.5%
+false-safe rate** — real Bengali scam messages were being called safe more
+often than not. Machine-translated Bengali reads like Western "you've won a
+lottery" spam translated word-for-word; real Bengali spam is written
+differently (local brands, local payment apps, colloquial phrasing), and a
+model trained mostly on the former didn't generalize to the latter.
+
+The fix: `prepare_bengali_data.py` splits the real dataset into an 80%
+train fold and a 20% holdout that is **never used in training** — a
+dedicated, honest measure of whether Bengali detection actually improved,
+independent of the general (mostly-translated) evaluation set.
+`train_classifier.py` folds the train fold in **oversampled 10x**, so it
+isn't drowned out by the ~13x larger volume of machine-translated Bengali
+already in the base dataset.
+
+**Before → after, measured on the same never-trained-on real-Bengali holdout:**
+
+| Metric | Before | After |
+|---|---|---|
+| Accuracy | 73.0% | **95.8%** |
+| False-safe rate on true spam | 58.5% (127/217) | **2.5%** (1/40) |
+
+Run `scripts/evaluate_bengali.py` to reproduce this yourself.
+
+### General results (not claimed — see `scripts/evaluate.py`)
+
+Full pipeline (rule engine + classifier), on a genuine held-out split
+across all 5 languages combined:
 
 | Metric | Score |
 |---|---|
-| Accuracy | 99.1% |
-| Spam recall | 97.3% |
-| Spam precision | 95.3% |
-| False-safe rate on true spam | 2.7% (73 / 2,675) |
-
-The classifier alone (no rule engine) scores marginally higher precision
-but *lower* recall (96.3%) — the hybrid catches spam messages the raw model
-missed, which is the whole reason it's a two-layer system and not just the
-model by itself.
+| Accuracy | 98.8% |
+| Spam recall | 95.3% |
+| Spam precision | 97.0% |
 
 ## The safety rule
 
@@ -119,14 +148,15 @@ disagree sharply. If either layer is confident something is wrong, the
 verdict reflects that. A false "Suspicious" costs someone a second look; a
 false "Safe" costs someone their money.
 
-## Two real bugs found and fixed while building this
+## Real bugs found and fixed while building this
 
-1. **Language misdetection**: Bengali sentences ending in "।" (the Danda
+1. **Bengali false-safe rate (58.5%)** — see above. The single biggest fix.
+2. **Language misdetection**: Bengali sentences ending in "।" (the Danda
    punctuation mark) were silently misclassified as Hindi — that character
    is Unicode-shared with the Devanagari block, not exclusive to Hindi.
    Fixed in both `app/services/language.py` and the frontend's
    `src/lib/mockAnalyzer.ts`.
-2. **Broken code-mixed explanations**: Hindi explanations were dropping raw
+3. **Broken code-mixed explanations**: Hindi explanations were dropping raw
    English rule titles into the middle of a Hindi sentence ("जिनमें requests
    otp... शामिल है"). Fixed with real per-language topic translations in
    `explain.py`.

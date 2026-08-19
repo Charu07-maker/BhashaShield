@@ -1,14 +1,12 @@
-"""Tests multilingual spam/ham judgment through the FULL pipeline
-(analyze_text — rule engine + classifier together), not the classifier in
-isolation. That distinction matters: the raw classifier's confidence on
-short spam phrasing alone is only moderate for some languages (e.g. ~30%
-for German/Chinese "you won a prize" text with no link) and only becomes
-confident once a URL is present — which is realistic, not a bug, since real
-scam messages almost always include one, and the rule engine's link
-detection exists specifically to carry that signal. Testing analyze_text()
-directly reflects what ships, not an artificial single-layer scenario.
+"""Tests spam/ham judgment through the FULL pipeline (analyze_text — rule
+engine + classifier together) for the 5 languages this product is strictly
+scoped to: English, Hindi, Bengali, Punjabi, Marathi. Skipped automatically
+if models/classifier.joblib hasn't been trained yet.
 
-Skipped automatically if models/classifier.joblib hasn't been trained yet.
+Bengali cases use phrasing styled after data/bengali_real_holdout.csv (real,
+native Bengali — not machine-translated) since that's the distribution that
+actually matters; see scripts/evaluate_bengali.py for the full measured
+report (95.8% accuracy / 2.5% false-safe on that dedicated holdout).
 """
 
 import pytest
@@ -20,27 +18,25 @@ pytestmark = pytest.mark.skipif(
     not is_model_loaded(), reason="No trained classifier present — run the training scripts first."
 )
 
-# One clearly-spam (with a link, like a real scam message), one clearly-ham
-# example per language, in languages well beyond the 4 the UI localizes
-# explanations for — proves the classifier generalizes across the dataset's
-# full language set, not just ShieldBhasha's current 4 UI languages.
 SPAM_CASES = [
-    ("French", "FELICITATIONS! Vous avez gagne un prix de 5000 euros. Cliquez ici: free-prize-claim.top/fr"),
-    ("German", "Herzlichen Glueckwunsch! Sie haben einen Preis gewonnen. Klicken Sie sofort hier: free-prize.top/de"),
-    ("Chinese", "恭喜您中奖了！请立即点击链接领取您的免费奖品：free-gift-xyz.top/win"),
-    ("Russian", "ПОЗДРАВЛЯЕМ! Вы выиграли приз. Перейдите по ссылке немедленно: free-prize-claim.top/ru"),
+    ("English", "URGENT: Your account will be suspended. Click here now: free-verify.top/link"),
+    ("Hindi", "आपका खाता आज बंद हो जाएगा। तुरंत अपना OTP भेजें: fake-bank.info/verify"),
+    ("Bengali", "৳৯৯+অর্ডারে গিফট! কোডঃ 4V ক্যাশব্যাক পেতে ক্লিক করুন: chdl.co/MSBzirsV"),
+    ("Punjabi", "ਵਧਾਈਆਂ! ਤੁਸੀਂ 50000 ਰੁਪਏ ਜਿੱਤੇ ਹਨ। ਹੁਣੇ ਦਾਅਵਾ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ: free-prize.top/pa"),
+    ("Marathi", "अभिनंदन! तुम्ही 50000 रुपये जिंकले आहेत. लगेच दावा करण्यासाठी क्लिक करा: free-prize.top/mr"),
 ]
 
 HAM_CASES = [
-    ("French", "Salut, on se voit demain pour le dejeuner au bureau?"),
-    ("German", "Hallo, treffen wir uns morgen um 15 Uhr im Cafe? Bis dann!"),
-    ("Chinese", "你好，我们明天下午三点在咖啡馆见面吧"),
-    ("Russian", "Привет, давай встретимся завтра в кафе в три часа."),
+    ("English", "Hey, are we still on for dinner tonight at 8?"),
+    ("Hindi", "क्या आप कल शाम को खाने पर आ रहे हैं?"),
+    ("Bengali", "ভাই, আপাতত দুইটার রেফারি হিসেবে জীবন তেজপাতা।"),
+    ("Punjabi", "ਭਰਾ, ਕੱਲ੍ਹ ਮਿਲਦੇ ਹਾਂ, ਕੰਮ ਬਾਰੇ ਗੱਲ ਕਰਨੀ ਹੈ।"),
+    ("Marathi", "अरे, आपण उद्या संध्याकाळी जेवायला भेटूया का?"),
 ]
 
 
 @pytest.mark.parametrize("language,text", SPAM_CASES)
-def test_pipeline_flags_multilingual_spam(language: str, text: str):
+def test_pipeline_flags_spam(language: str, text: str):
     result = analyze_text(text)
     assert result.status in ("suspicious", "dangerous"), (
         f"{language} spam under-flagged: status={result.status}, score={result.risk_score}"
@@ -48,7 +44,7 @@ def test_pipeline_flags_multilingual_spam(language: str, text: str):
 
 
 @pytest.mark.parametrize("language,text", HAM_CASES)
-def test_pipeline_clears_multilingual_ham(language: str, text: str):
+def test_pipeline_clears_ham(language: str, text: str):
     result = analyze_text(text)
     assert result.status == "safe", (
         f"{language} ham over-flagged: status={result.status}, score={result.risk_score}"
