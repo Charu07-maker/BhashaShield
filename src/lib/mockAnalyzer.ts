@@ -2,8 +2,14 @@ import type { AnalysisResult, LinkVerdict, MessageSegment, RedFlag } from './ana
 import { statusFromScore } from './analysis'
 import type { VerdictStatus } from '../components/ui/StatusBadge'
 
+// U+0964 (।) and U+0965 (॥) — the Danda / Double Danda sentence-ending
+// marks — live inside the Devanagari Unicode block but are shared
+// punctuation used by Bengali and other Brahmic scripts, not exclusive to
+// Hindi. Excluding them matters: a Bengali sentence ending in "।" would
+// otherwise match the Devanagari check first and get misclassified as
+// Hindi before the Bengali check ever runs.
 export function detectScriptLanguage(text: string): string {
-  if (/[ऀ-ॿ]/.test(text)) return 'Hindi'
+  if (/[ऀ-ॣ०-ॿ]/.test(text)) return 'Hindi'
   if (/[ঀ-৿]/.test(text)) return 'Bengali'
   if (/[஀-௿]/.test(text)) return 'Tamil'
   return 'English'

@@ -1,0 +1,94 @@
+# Scam detection rules — data, not code. Add a new pattern here and redeploy;
+# no code review needed. Ported from the frontend's mock rule engine
+# (src/lib/mockAnalyzer.ts) with the same weights, now server-side and
+# structured per-language so multilingual coverage is explicit and auditable.
+#
+# `patterns.en` is always checked in addition to the message's detected
+# language, since Indian-language SMS is frequently code-mixed with English
+# loanwords (OTP, UPI, KYC are rarely translated in practice).
+#
+# NOTE: Tamil/Bengali native-script patterns below are intentionally sparse —
+# only terms verified against real examples already in the product are
+# included, to avoid shipping guessed translations into a safety-critical
+# matcher. A native speaker filling these in is one of the highest-value
+# contributions to this ruleset.
+
+- id: requests_otp
+  weight: 35
+  title: "Requests OTP"
+  description: "No legitimate service ever asks for your OTP over SMS or chat."
+  patterns:
+    en: ["\\botp\\b", "one[- ]?time password"]
+    hi: ["ओटीपी", "वन टाइम पासवर्ड"]
+    bn: ["ওটিপি"]
+
+- id: kyc_pressure
+  weight: 20
+  title: "KYC update pressure"
+  description: "Fraudsters commonly frame scams as urgent \"KYC updates\" to create panic."
+  patterns:
+    en: ["\\bkyc\\b"]
+    hi: ["केवाईसी"]
+
+- id: artificial_urgency
+  weight: 20
+  title: "Artificial urgency"
+  description: "Creates time pressure so you act before thinking it through."
+  patterns:
+    en: ["urgent(ly)?", "immediately", "within \\d+ hours?", "right away", "act now"]
+    hi: ["तुरंत", "जल्द से जल्द"]
+
+- id: threatens_account_action
+  weight: 20
+  title: "Threatens account action"
+  description: "Threatens to block, suspend, or freeze your account or funds."
+  patterns:
+    en: ["block(ed)?", "suspend(ed)?", "frozen", "deactivat(ed|ion)"]
+    hi: ["बंद हो जाएगा", "सीज़"]
+
+- id: impersonates_law_enforcement
+  weight: 35
+  title: "Impersonates law enforcement"
+  description: "Impersonates police, CBI, customs, or courts to intimidate you."
+  patterns:
+    en: ["\\bcbi\\b", "\\bed\\b", "arrest", "\\bcourt\\b", "customs", "legal action"]
+    hi: ["गिरफ्तार", "सीबीआई", "न्यायालय"]
+
+- id: requests_financial_details
+  weight: 30
+  title: "Requests financial details"
+  description: "Asks for banking details that should never be shared over message."
+  patterns:
+    en: ["\\bupi\\b", "bank details", "account number", "\\bpin\\b", "\\bcvv\\b", "card number"]
+    hi: ["खाता संख्या", "बैंक विवरण"]
+
+- id: unrealistic_reward
+  weight: 25
+  title: "Unrealistic reward"
+  description: "Promises a prize or reward you didn't enter for."
+  patterns:
+    en: ["lottery", "winner", "prize", "reward", "claim now", "you\\s*(have\\s*)?won"]
+    hi: ["लॉटरी", "इनाम", "जीत"]
+
+- id: stay_on_call
+  weight: 30
+  title: "Instruction to stay on the call"
+  description: "Isolates you from friends or family who could point out it's a scam."
+  patterns:
+    en: ["don'?t (disconnect|hang up)", "do not disconnect", "stay on the (call|line)"]
+    hi: ["कॉल मत काटो", "फोन मत रखना"]
+
+- id: video_surveillance
+  weight: 25
+  title: "Demands to stay on video call"
+  description: "Creates a sense of surveillance and control — a hallmark \"digital arrest\" tactic."
+  patterns:
+    en: ["video call", "stay on camera", "keep your camera on"]
+    hi: ["वीडियो कॉल पर बने रहो"]
+
+- id: suspicious_link
+  weight: 15
+  title: "Suspicious link"
+  description: "Contains a link to an unfamiliar or unofficial-looking domain."
+  patterns:
+    en: ["https?://[^\\s]+", "\\bwww\\.[^\\s]+", "\\b[a-z0-9-]+\\.(info|xyz|top|co|link|click|shop)\\b"]

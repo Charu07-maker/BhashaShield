@@ -34,6 +34,7 @@ type Feedback = 'up' | 'down' | null
 
 const ANALYZE_DELAY_MS = 2200
 const OCR_DELAY_MS = 1400
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export function TextChecker() {
   const { setDetectedLanguage, resetCheck, resetSignal } = useDashboardContext()
@@ -45,6 +46,7 @@ export function TextChecker() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [feedback, setFeedback] = useState<Feedback>(null)
   const [fileError, setFileError] = useState<string | null>(null)
+  const [usedOfflineFallback, setUsedOfflineFallback] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -56,17 +58,42 @@ export function TextChecker() {
     setResult(null)
     setFeedback(null)
     setFileError(null)
+    setUsedOfflineFallback(false)
   }, [resetSignal])
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!messageText.trim() || phase === 'analyzing') return
     setPhase('analyzing')
-    window.setTimeout(() => {
-      const analysis = analyzeTextCheckerMessage(messageText)
+
+    const minDelay = new Promise((resolve) => window.setTimeout(resolve, ANALYZE_DELAY_MS))
+
+    try {
+      const [response] = await Promise.all([
+        fetch(`${API_URL}/api/v1/check/text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: messageText }),
+        }),
+        minDelay,
+      ])
+      if (!response.ok) throw new Error(`API returned ${response.status}`)
+      const analysis: AnalysisResult = await response.json()
+      setUsedOfflineFallback(false)
       setResult(analysis)
       setDetectedLanguage(analysis.language)
       setPhase('result')
-    }, ANALYZE_DELAY_MS)
+    } catch (err) {
+      // Detection engine unreachable (not running, or CORS/network issue) —
+      // fall back to the local mock so the demo never hard-fails, but say
+      // so plainly rather than silently passing off a mock as a live result.
+      console.warn('Detection engine unreachable, using offline fallback:', err)
+      await minDelay
+      const analysis = analyzeTextCheckerMessage(messageText)
+      setUsedOfflineFallback(true)
+      setResult(analysis)
+      setDetectedLanguage(analysis.language)
+      setPhase('result')
+    }
   }
 
   const handleCheckAnother = () => {
@@ -217,6 +244,12 @@ export function TextChecker() {
         result && (
           <Card>
             <CardContent className="animate-fade-in space-y-6 pt-6">
+              {usedOfflineFallback && (
+                <InlineNotice>
+                  The detection engine wasn't reachable, so this is an offline example result,
+                  not a live check.
+                </InlineNotice>
+              )}
               <VerdictBanner status={result.status} />
               <RiskMeter score={result.riskScore} status={result.status} />
 
